@@ -195,7 +195,7 @@ func TestIsTouchingSymbol(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			isTouching := isTouchingSymbol(test.grid, test.row, test.col)
+			isTouching := isTouching(test.grid, test.row, test.col, isSymbol)
 			if isTouching != test.isTouching {
 				t.Errorf("Expected isTouching to be %v, got %v", test.isTouching, isTouching)
 			}
