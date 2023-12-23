@@ -304,82 +304,113 @@ Consider all of the initial seed numbers listed in the ranges on the first line 
 location number that corresponds to any of the initial seed numbers?
 */
 
-//// Brute force doesn't quite work for this. We instead need to find a smarter way to do this.
-//// My first attempt is to find all the intersections of the ranges with the seed ranges, and then
-//// find all the intersections of those intersections, and so on, until we have all of the ranges of locations
-//// that we can use to find the lowest one.
-//func Part2(lines []string) (int, error) {
-//	seeds, maps := parseInput(lines)
-//	seedRanges := convertSeedsToSeedRanges(seeds)
-//	return findLowestLocationForSeedRanges(seedRanges, maps), nil
-//}
-//
-//func convertSeedsToSeedRanges(seeds []int) []Range {
-//	var seedRanges []Range
-//	for i := 0; i < len(seeds); i += 2 {
-//		start := seeds[i]
-//		length := seeds[i+1]
-//		seedRanges = append(seedRanges, Range{
-//			Start:  start,
-//			Length: length,
-//		})
-//	}
-//	return seedRanges
-//}
-//
-//func findLowestLocationForSeedRanges(seedRanges []Range, maps []MappingTable) int {
-//	lowest := math.MaxInt
-//	for i, seedRange := range seedRanges {
-//		for seed := seedRange.Start; seed < seedRange.Start+seedRange.Length; seed++ {
-//			location := findLocationForSeed(seed, maps)
-//			if location < lowest {
-//				lowest = location
-//			}
-//		}
-//		printProgress(i, len(seedRanges))
-//	}
-//	return lowest
-//}
-//
-//// findLocationForSeedRange takes the initial seed, and translates through all the mappings
-//// to find the final location.
-//func findLocationForSeedRange(seedRange Range, maps []MappingTable) int {
-//	source := seedRange
-//	for _, mapping := range maps {
-//
-//		// The next source is the destination of the previous mapping.
-//		source = getDestination(source, mapping)
-//	}
-//	return source
-//}
-//
-//func getDestinationForRange(sourceRange Range, mapping MappingTable) int {
-//	var destinationRanges []Range
-//	start := sourceRange.Start
-//	for _, r := range mapping.Ranges {
-//		if isInMappingRange(start, r) {
-//			newRange := Range{
-//				Start:  start,
-//				Length: min(sourceRange.End(), r.SourceEnd()),
-//			}
-//			destinationRanges = append()
-//		}
-//	}
-//}
-//
-//func isInMappingRange(i int, r MappingRange) bool {
-//	return i >= r.SourceStart && i < r.SourceStart+r.Length
-//}
-//
-//func getOverlappingRange(start int, sourceRange Range, mappingRange MappingRange) Range {
-//	return Range{
-//		Start: start,
-//		Length:
-//	}
-//}
-//
-//func printProgress(seed int, total int) {
-//	if seed%100 == 0 {
-//		fmt.Println("Seed", seed, "of", total)
-//	}
-//}
+// Brute force doesn't quite work for this. We instead need to find a smarter way to do this.
+func Part2(lines []string) (int, error) {
+	seeds, maps := parseInput(lines)
+	seedRanges := convertSeedsToSeedRanges(seeds)
+	return findLowestLocationForSeedRanges(seedRanges, maps), nil
+}
+
+func convertSeedsToSeedRanges(seeds []int) []Range {
+	var seedRanges []Range
+	for i := 0; i < len(seeds); i += 2 {
+		start := seeds[i]
+		length := seeds[i+1]
+		seedRanges = append(seedRanges, Range{
+			Start: start,
+			End:   start + length,
+		})
+	}
+	return seedRanges
+}
+
+func findLowestLocationForSeedRanges(seedRanges []Range, maps []MappingTable) int {
+	locationRanges := findLocationRangesForSeedRanges(seedRanges, maps)
+	lowest := math.MaxInt
+	for _, r := range locationRanges {
+		if r.Start < lowest {
+			lowest = r.Start
+		}
+	}
+	return lowest
+}
+
+// findLocationRangesForSeedRanges takes the initial seed, and translates through all the mappings
+// to find the final location.
+func findLocationRangesForSeedRanges(seedRanges []Range, maps []MappingTable) []Range {
+	sources := seedRanges
+	for _, mapping := range maps {
+		var nextSources []Range
+		for _, s := range sources {
+			mappedDestinations := getDestinationsForRange(s, mapping)
+			nextSources = append(nextSources, mappedDestinations...)
+		}
+		sources = nextSources
+	}
+	// We want the lowest
+	return sources
+}
+
+// getDestinationsForRange will go through the range and try to translate each number in its range based on how it
+// appears in the mapping table. However, it is too slow to actually iterate through each number in this range. So
+// instead we will check for overlaps of these ranges and translate each overlapping segment. If a section of the
+// sourceRange doesn't overlap, then we will simply return the same numbers of that range that doesn't overlap,
+// as per the rules.
+func getDestinationsForRange(sourceRange Range, mappingTable MappingTable) []Range {
+	var destinationRanges []Range
+
+	r := sourceRange
+	mappings := mappingTable.Mappings
+
+	for r.Start != r.End && len(mappings) > 0 {
+		m := mappings[0]
+
+		// If these ranges don't overlap, then we can discard the mapping we're comparing to
+		// and move on to the next one.
+		if !doOverlap(r, m.SourceRange) {
+			mappings = mappings[1:]
+			continue
+		}
+
+		// If our start is before the mapping we're comparing with, then we directly use the source values
+		// as the destination values. We don't want to actually convert to the destination values since this
+		// range represents values that aren't mapped.
+		if r.Start < m.SourceRange.Start {
+			destinationRange := Range{
+				Start: r.Start,
+				End:   m.SourceRange.Start,
+			}
+			destinationRanges = append(destinationRanges, destinationRange)
+			// Chop off that range of values so we don't try to look them up in our mapping again.
+			r.Start = destinationRange.End
+		} else {
+			rangeToConvert := Range{
+				Start: r.Start,
+				End:   min(r.End, m.SourceRange.End),
+			}
+			destinationRange := convertToDestinationRange(rangeToConvert, m)
+			destinationRanges = append(destinationRanges, destinationRange)
+			// Chop off that range of values so we don't try to look them up in our mapping again.
+			r.Start = rangeToConvert.End
+		}
+	}
+	// At the end, if we still have a non-empty sourceRange, then add that to the destination.
+	if r.Start != r.End {
+		destinationRanges = append(destinationRanges, r)
+	}
+	return destinationRanges
+}
+
+func doOverlap(r, s Range) bool {
+	return (r.Start >= s.Start && r.Start < s.End) ||
+		(s.Start >= r.Start && s.Start < r.End)
+}
+
+func convertToDestinationRange(rangeToConvert Range, mapping Mapping) Range {
+	startDist := rangeToConvert.Start - mapping.SourceRange.Start
+	endDist := rangeToConvert.End - mapping.SourceRange.Start
+	return Range{
+		Start: mapping.DestinationRange.Start + startDist,
+		End:   mapping.DestinationRange.Start + endDist,
+	}
+}

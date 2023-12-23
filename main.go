@@ -10,7 +10,7 @@ import (
 func main() {
 	lines := file_reader.ReadFile("day5/input.txt")
 
-	total, err := day5.Part1(lines)
+	total, err := day5.Part2(lines)
 	if err != nil {
 		log.Fatal(err)
 	}
