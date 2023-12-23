@@ -205,9 +205,6 @@ of scratchcards, how many total scratchcards do you end up with?
 
 var cardScores = map[int]int{}
 
-// We can treat this like a recursive, dynamic programming problem. Starting with 1, the score for that card will
-// be the sum of all the recursively created cards from that one. We can memoize the results so we don't have to
-// recalculate them. And at the end, we'll sum the value of all the cards.
 func Part2(lines []string) (int, error) {
 	cards := parseScratchCards(lines)
 	totalScore := calculateScores(cards)
@@ -222,6 +219,9 @@ func calculateScores(cards []ScratchCard) int {
 	return totalScore
 }
 
+// calculateScore treats this like a recursive, dynamic programming problem. Starting with 1, the score for that card will
+// be the sum of all the recursively created cards from that one. We can memoize the results so we don't have to
+// recalculate them. And at the end, we'll sum the value of all the cards.
 func calculateScore(cards []ScratchCard, num int) int {
 	if score, ok := cardScores[num]; ok {
 		return score
