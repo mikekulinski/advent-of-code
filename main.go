@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/mikekulinski/advent-of-code/day9"
+	"github.com/mikekulinski/advent-of-code/day10"
 	"github.com/mikekulinski/advent-of-code/file_reader"
 	"log"
 )
 
 func main() {
-	lines := file_reader.ReadFile("day9/input.txt")
+	lines := file_reader.ReadFile("day10/input.txt")
 
-	total, err := day9.Part2(lines)
+	total, err := day10.Part2(lines)
 	if err != nil {
 		log.Fatal(err)
 	}
