@@ -10,7 +10,7 @@ func Part1(input []string) (int, error) {
 	list1 := []int{}
 	list2 := []int{}
 	for _, line := range input {
-		nums := strings.Split(line, "   ")
+		nums := strings.Fields(line)
 		num1, err := strconv.Atoi(nums[0])
 		if err != nil {
 			return 0, err
@@ -36,7 +36,7 @@ func Part2(input []string) (int, error) {
 	list1 := []int{}
 	list2 := []int{}
 	for _, line := range input {
-		nums := strings.Split(line, "   ")
+		nums := strings.Fields(line)
 		num1, err := strconv.Atoi(nums[0])
 		if err != nil {
 			return 0, err
